@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin — Daftar Pengajuan</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<style>
+  :root{--bg:#f4f5f7;--panel:#fff;--ink:#1f2430;--muted:#6b7280;--line:#e4e7ec;--accent:#2563eb;--red:#dc2626}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  button{font-family:inherit;cursor:pointer}
+  input,select{font-family:inherit;font-size:14px}
+  .btn{border:1px solid var(--line);background:#fff;padding:8px 12px;border-radius:8px;font-weight:600}
+  .btn:hover{background:#f3f4f6}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.sm{padding:5px 9px;font-size:12px}
+  .btn.danger{color:var(--red);border-color:#fecaca}
+
+  /* Gate */
+  .gate{min-height:100vh;display:grid;place-items:center;padding:20px}
+  .gate .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:32px;width:340px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.08)}
+  .gate img{width:52px;height:52px;margin-bottom:12px}
+  .gate h1{font-size:18px;margin:0 0 4px}
+  .gate p{color:var(--muted);margin:0 0 18px;font-size:13px}
+  .gate input{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;text-align:center;font-size:18px;letter-spacing:3px;margin-bottom:12px}
+  .gate .err{color:var(--red);font-size:12px;min-height:16px;margin-bottom:8px}
+
+  /* App */
+  .wrap{max-width:1150px;margin:0 auto;padding:24px}
+  header.bar{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  header.bar img{width:34px;height:34px}
+  header.bar h1{font-size:18px;margin:0;flex:1}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0}
+  .filters select,.filters input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
+  .stat .n{font-size:20px;font-weight:800}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+  th{background:#fafbfc;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  .money{text-align:right;white-space:nowrap;font-weight:600}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .tag.pengajuan{background:#dbeafe;color:#1e40af}
+  .tag.reimburse{background:#fef3c7;color:#92400e}
+  .pill{padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent}
+  .st-pending{background:#f3f4f6;color:#374151}
+  .st-approved{background:#dcfce7;color:#166534}
+  .st-rejected{background:#fee2e2;color:#991b1b}
+  .st-paid{background:#e0e7ff;color:#3730a3}
+  .muted{color:var(--muted);font-size:12px}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .row-actions{display:flex;gap:6px;justify-content:flex-end}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-start;justify-content:center;padding:30px;overflow-y:auto;z-index:50}
+  .modal.open{display:flex}
+  .sheet{background:#fff;border-radius:14px;max-width:720px;width:100%;padding:26px}
+  .sheet h2{margin:0 0 2px;font-size:18px}
+  table.doc{border:1px solid #000}
+  table.doc td{border:1px solid #000;padding:5px 8px}
+  .t-title td{background:#ffff00;font-weight:800;text-align:center}
+  .t-sec td{background:#fce4cc;font-weight:700}
+  .t-total td{background:#4ade4a;font-weight:800}
+  .bukti-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .bukti-grid a{border:1px solid var(--line);border-radius:8px;overflow:hidden;display:block}
+  .bukti-grid img{width:100%;display:block}
+  .bukti-grid .cap{padding:6px 8px;font-size:12px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<!-- ===== PIN GATE ===== -->
+<div class="gate" id="gate">
+  <div class="card">
+    <img src="favicon.svg" alt="">
+    <h1>Daftar Pengajuan</h1>
+    <p>Masukkan PIN admin untuk melihat data.</p>
+    <input id="pin" type="password" inputmode="numeric" placeholder="••••" onkeydown="if(event.key==='Enter')unlock()" />
+    <div class="err" id="gateErr"></div>
+    <button class="btn primary" style="width:100%" onclick="unlock()" id="unlockBtn">Buka</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div class="wrap" id="app" style="display:none">
+  <header class="bar">
+    <img src="favicon.svg" alt="">
+    <h1>Daftar Pengajuan &amp; Reimburse</h1>
+    <a class="btn sm" href="index.html">+ Buat Baru</a>
+    <button class="btn sm" onclick="refresh()">↻ Muat ulang</button>
+    <button class="btn sm" onclick="lock()">Keluar</button>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="filters">
+    <select id="fType" onchange="refresh()">
+      <option value="all">Semua jenis</option>
+      <option value="pengajuan">Pengajuan</option>
+      <option value="reimburse">Reimburse</option>
+    </select>
+    <select id="fStatus" onchange="refresh()">
+      <option value="all">Semua status</option>
+      <option value="pending">Pending</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+      <option value="paid">Paid</option>
+    </select>
+    <input id="fSearch" placeholder="Cari judul / pemohon…" oninput="drawTable()" />
+    <span class="muted" id="count"></span>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th>Tanggal</th><th>Jenis</th><th>Perusahaan</th><th>Judul</th><th>Pemohon</th>
+      <th class="money">Total</th><th>Status</th><th></th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- ===== DETAIL MODAL ===== -->
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+let PIN=null, ROWS=[];
+
+function api(action, extra){
+  return fetch(window.SUPA.adminFn, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+window.SUPA.anonKey,'apikey':window.SUPA.anonKey},
+    body: JSON.stringify(Object.assign({action, pin:PIN}, extra||{}))
+  }).then(async r=>{ const j=await r.json(); if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); return j; });
+}
+
+async function unlock(){
+  const btn=document.getElementById('unlockBtn'); const err=document.getElementById('gateErr');
+  PIN=document.getElementById('pin').value.trim(); err.textContent='';
+  if(!PIN){ err.textContent='Masukkan PIN.'; return; }
+  btn.disabled=true; btn.textContent='Memeriksa…';
+  try{
+    await api('checkPin');
+    sessionStorage.setItem('finpin', PIN);
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='block';
+    await refresh();
+  }catch(e){ err.textContent = e.message==='PIN salah' ? 'PIN salah.' : ('Error: '+e.message); PIN=null; }
+  finally{ btn.disabled=false; btn.textContent='Buka'; }
+}
+function lock(){ sessionStorage.removeItem('finpin'); PIN=null; location.reload(); }
+
+async function refresh(){
+  const type=document.getElementById('fType').value, status=document.getElementById('fStatus').value;
+  document.getElementById('tbody').innerHTML='<tr><td colspan="8" class="empty">Memuat…</td></tr>';
+  try{
+    const j=await api('list',{type,status});
+    ROWS=j.rows||[];
+    drawStats(); drawTable();
+  }catch(e){
+    document.getElementById('tbody').innerHTML='<tr><td colspan="8" class="empty">Gagal memuat: '+esc(e.message)+'</td></tr>';
+  }
+}
+
+function drawStats(){
+  const sum=(f)=>ROWS.filter(f).reduce((a,r)=>a+(r.total||0),0);
+  const c=(f)=>ROWS.filter(f).length;
+  const stats=[
+    {l:'Total entri', n:ROWS.length},
+    {l:'Pending', n:c(r=>r.status==='pending')},
+    {l:'Approved', n:c(r=>r.status==='approved')},
+    {l:'Nilai pending', n:rp(sum(r=>r.status==='pending'))},
+  ];
+  document.getElementById('stats').innerHTML=stats.map(s=>`<div class="stat"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('');
+}
+
+function drawTable(){
+  const q=(document.getElementById('fSearch').value||'').toLowerCase();
+  const rows=ROWS.filter(r=>!q || (r.title||'').toLowerCase().includes(q) || (r.requester_name||'').toLowerCase().includes(q));
+  document.getElementById('count').textContent = rows.length+' entri';
+  if(!rows.length){ document.getElementById('tbody').innerHTML='<tr><td colspan="8" class="empty">Belum ada data.</td></tr>'; return; }
+  document.getElementById('tbody').innerHTML = rows.map(r=>`
+    <tr>
+      <td class="muted">${fmtDate(r.created_at)}</td>
+      <td><span class="tag ${r.type}">${r.type==='pengajuan'?'Pengajuan':'Reimburse'}</span></td>
+      <td>${esc(r.company||'-')}</td>
+      <td>${esc(r.title||'-')}</td>
+      <td>${esc(r.requester_name||'-')}</td>
+      <td class="money">${rp(r.total)}</td>
+      <td>
+        <select class="pill st-${r.status}" onchange="setStatus('${r.id}',this.value)" title="Ubah status">
+          ${['pending','approved','rejected','paid'].map(s=>`<option value="${s}" ${s===r.status?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td class="row-actions">
+        <button class="btn sm" onclick="openDetail('${r.id}')">Lihat</button>
+        <button class="btn sm danger" onclick="del('${r.id}')">Hapus</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function setStatus(id,status){
+  try{ await api('setStatus',{id,status}); const r=ROWS.find(x=>x.id===id); if(r)r.status=status; drawStats(); drawTable(); }
+  catch(e){ alert('Gagal ubah status: '+e.message); refresh(); }
+}
+async function del(id){
+  if(!confirm('Hapus pengajuan ini? Tidak bisa dibatalkan.'))return;
+  try{ await api('delete',{id}); ROWS=ROWS.filter(x=>x.id!==id); drawStats(); drawTable(); }
+  catch(e){ alert('Gagal hapus: '+e.message); }
+}
+
+function openDetail(id){
+  const r=ROWS.find(x=>x.id===id); if(!r)return;
+  const secs=r.items||[];
+  let body=`<tr class="t-title"><td colspan="5">${esc(r.title||'')}</td><td style="text-align:right">${rp(r.total)}</td></tr>`;
+  secs.forEach((s,si)=>{
+    const sub=(s.items||[]).reduce((a,i)=>a+(i.price||0)*(i.qty||0),0);
+    body+=`<tr class="t-sec"><td>${roman(si+1)}</td><td colspan="4">${esc(s.name||'')}</td><td style="text-align:right">${rp(sub)}</td></tr>`;
+    (s.items||[]).forEach((i,ii)=>{
+      body+=`<tr><td style="text-align:center">${ii+1}</td><td>${esc(i.desc||'')}</td><td style="text-align:right">${rp(i.price)}</td><td style="text-align:center">${i.qty||0}</td><td>${esc(i.note||'')}</td><td style="text-align:right">${rp((i.price||0)*(i.qty||0))}</td></tr>`;
+    });
+  });
+  body+=`<tr class="t-total"><td colspan="5" style="text-align:right;font-style:italic">TOTAL</td><td style="text-align:right">${rp(r.total)}</td></tr>`;
+
+  const bukti=(r.bukti||[]).length
+    ? `<h3 style="margin:18px 0 6px;font-size:14px">Bukti Transaksi</h3><div class="bukti-grid">`+
+      r.bukti.map((b,i)=>`<a href="${b.url}" target="_blank"><img src="${b.url}" alt=""><div class="cap">${i+1}. ${esc(b.label||'Bukti')}</div></a>`).join('')+`</div>`
+    : '';
+
+  document.getElementById('sheet').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:start">
+      <div><h2>${esc(r.title||'')}</h2>
+        <div class="muted"><span class="tag ${r.type}">${r.type}</span> • ${esc(r.company||'')} • ${fmtDate(r.created_at)}</div></div>
+      <button class="btn sm" onclick="closeModal()">Tutup ✕</button>
+    </div>
+    <div class="muted" style="margin:10px 0">
+      Pemohon: <b>${esc(r.requester_name||'-')}</b> ${r.division?('• '+esc(r.division)):''}<br>
+      Rekening: ${esc(r.bank||'-')} a.n ${esc(r.account_name||'-')} — ${esc(r.account_no||'-')}
+      ${r.admin_note?('<br>Catatan: '+esc(r.admin_note)):''}
+    </div>
+    <table class="doc" style="width:100%;border-collapse:collapse;font-size:13px">${body}</table>
+    ${bukti}`;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+/* helpers */
+function rp(n){ return 'Rp'+(Math.round(n)||0).toLocaleString('id-ID'); }
+function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function roman(n){const m=[[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];let r='';for(const[v,s]of m){while(n>=v){r+=s;n-=v}}return r;}
+function fmtDate(iso){ if(!iso)return ''; const d=new Date(iso); if(isNaN(d))return iso; const b=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']; return d.getDate()+' '+b[d.getMonth()]+' '+d.getFullYear(); }
+
+/* auto-unlock if PIN in session */
+(function(){ const p=sessionStorage.getItem('finpin'); if(p){ document.getElementById('pin').value=p; unlock(); } })();
+</script>
+</body>
+</html>
